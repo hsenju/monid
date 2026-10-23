@@ -15,7 +15,8 @@ import {
 export default defineEndpoint({
     meta: {
         displayName: "Omneky Video Ad",
-        summary: "Generate a 10–15 second on-brand product video ad.",
+        summary:
+            "Generate a 10–15 second on-brand product video ad for 10 Omneky credits.",
         description: "Produce a short, multi-scene product video " +
             "advertisement. Omneky scrapes the brand and product pages for " +
             "colors and copy, writes a narrative, voiceover script and " +
@@ -26,7 +27,7 @@ export default defineEndpoint({
             "and optional end-card CTA text. Returns the finished job; " +
             "`result_url` is the video. Headline, subheadline and offer " +
             "copy are not used on video; for a static ad use Omneky " +
-            "/v1/image-ad instead.",
+            "/v1/image-ad instead. Each video costs 10 Omneky credits.",
         docsUrl: "https://www.omneky.com/api-docs",
         categories: ["video-generation"],
         notes: [
@@ -51,8 +52,9 @@ export default defineEndpoint({
     usage: {
         model: {
             kind: UsageModelKind.PER_CALL,
-            // PRICING: Omneky reserves VIDEO_AD_CREDIT_COST (10) credits per
-            // video job at submit. Pending Omneky confirmation.
+            label: "product video ad",
+            // Omneky's published rate card (www.omneky.com/api-docs#billing):
+            // "Product Animation Video with sound", 10 credits per video.
             consumes: { credit: "default", amount: 10 },
         },
     },

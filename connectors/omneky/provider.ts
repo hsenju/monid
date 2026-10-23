@@ -11,10 +11,28 @@ import { defineProvider, presets } from "@shared/core";
  * created them, so the job-status read is NOT exposed as its own endpoint —
  * it is only used by this provider's poll, against the job this run created.
  *
- * Billing: Omneky draws from one prepaid credit balance and reserves the
- * job's credits at submit (`credits_used` on the 202). The status body carries
- * no meter, so there is no `usage.consolidate`; each endpoint declares a
- * flat PER_CALL rate and the derived fold settles. A FAILED job settles 0.
+ * Billing: Omneky draws from one prepaid credit balance shared by its
+ * platform and API, and reserves a job's credits at submit (`credits_used`
+ * on the 202). The status body carries no meter, so there is no
+ * `usage.consolidate`; each endpoint declares its rate from Omneky's
+ * published rate card (www.omneky.com/api-docs#billing) and the derived
+ * fold settles. A FAILED job settles 0.
+ *
+ * Published rate card, and where each line lives in this connector:
+ *   - Image Generation, 1K quality ............ 5   → /v1/image-ad (1K)
+ *   - Image Generation, 4K quality ............ 10  → /v1/image-ad (4K)
+ *   - Product Animation Video with sound ...... 10  → /v1/video-ad
+ *   - Image Edit or Upscale (edit, upscale to 4K, copy & resize) 5,
+ *     Image Layering 10, Short Commercial 30, AI Avatar Video without /
+ *     using product 15 / 20, Long-form Avatar Scripted Video Standard/Fast
+ *     75 and Pro 60, Long-form Non-UGC Scripted Video (Pro) 60, Single
+ *     Scene Regeneration 20, Clone a winning video 5/sec, Edit a video
+ *     2/sec, Video Auto-Splicing free, AI Creative Performance Insights
+ *     1 per image ad / 2 per video ad, ad-account connections free —
+ *     platform features with no external-API endpoint, so not exposed.
+ * Image pricing is per ad; the vendor's `no_of_ads` batch (1–10 ads per
+ * request) is not exposed, so one run is one ad. The published docs state
+ * no credit-to-currency rate.
  */
 export default defineProvider({
     name: "omneky",

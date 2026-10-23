@@ -25,10 +25,16 @@ named `default` for Omneky credits.
 ### Requirement: Image ad endpoint
 The connector SHALL provide `/v1/image-ad` as a POST to
 `/create_image_ad_async`. Input SHALL require `brand_metadata`, require
-`product_images` whenever `product_metadata` is present, accept only
-`"1K"` as `generation_metadata.resolution`, and reject `no_of_ads`,
-`job_ids` and `callback_url`. The usage model SHALL be 5 Omneky credits per
-call.
+`product_images` whenever `product_metadata` is present, accept `"1K"` or
+`"4K"` as `generation_metadata.resolution` (default `"1K"`), and reject
+`no_of_ads`, `job_ids` and `callback_url`. The usage model SHALL be
+COMPOSITE: one `image_1k` result at 5 Omneky credits, or one `image_4k`
+result at 10, selected by the request's resolution.
+
+#### Scenario: Resolution selects the rate
+- **WHEN** a caller requests `generation_metadata.resolution: "4K"`
+- **THEN** the estimate and the success settle are one `image_4k` (10 credits)
+- **AND** an omitted resolution goes on the wire as `"1K"` and bills 5
 
 ### Requirement: Video ad endpoint
 The connector SHALL provide `/v1/video-ad` as a POST to

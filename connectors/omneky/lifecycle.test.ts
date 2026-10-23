@@ -7,6 +7,7 @@ import {
     runEndpoint,
     testSealedUnit,
 } from "@shared/testing";
+import { directTransport, Engine } from "@monid/connector-engine";
 
 const HERE = fromFileUrl(new URL("./", import.meta.url));
 const INPUTS = JSON.parse(
@@ -29,7 +30,7 @@ Deno.test("omneky: image ad polls to SUCCESS and settles 5 credits", async () =>
     assertEquals(result.isProviderError, false);
     assertEquals(result.usage, {
         credits: { default: 5 },
-        evidence: { CALL: 1 },
+        evidence: { image_1k: 1 },
     });
     const output = result.output as { status: string; result_url: string };
     assertEquals(output.status, "SUCCESS");
@@ -37,6 +38,52 @@ Deno.test("omneky: image ad polls to SUCCESS and settles 5 credits", async () =>
         output.result_url,
         "https://cdn.example.com/synthetic/omneky-image-ad.png",
     );
+});
+
+Deno.test("omneky: a 4K image ad settles 10 credits on the 4K line", async () => {
+    const input = structuredClone(INPUTS["image-ad"]) as {
+        body: { generation_metadata: Record<string, unknown> };
+    };
+    input.body.generation_metadata.resolution = "4K";
+    const result = await runEndpoint({
+        unit: await testSealedUnit(IMAGE),
+        input: input as unknown as RunInput,
+        mode: "replay",
+        fixture: await loadFixture(
+            `${HERE}fixtures/synthetic-image-4k-succeeded.json`,
+        ),
+    });
+    assertEquals(result.httpStatus, 200);
+    assertEquals(result.usage, {
+        credits: { default: 10 },
+        evidence: { image_4k: 1 },
+    });
+});
+
+Deno.test("omneky: an omitted resolution goes on the wire as 1K", async () => {
+    const sent: Json[] = [];
+    const engine = new Engine({
+        transport: directTransport({
+            params: () => Promise.resolve({ apiKey: "test-key" }),
+            fetch: (_input, init) => {
+                sent.push(JSON.parse(String(init?.body)));
+                return Promise.resolve(
+                    new Response(JSON.stringify({ detail: "stop here" }), {
+                        status: 402,
+                        headers: { "content-type": "application/json" },
+                    }),
+                );
+            },
+        }),
+    });
+    const loaded = await engine.load(await testSealedUnit(IMAGE));
+    await loaded.run({
+        body: { brand_metadata: { brand_url: "https://example.com" } },
+    });
+    assertEquals(sent, [{
+        brand_metadata: { brand_url: "https://example.com" },
+        generation_metadata: { resolution: "1K" },
+    }]);
 });
 
 Deno.test("omneky: a FAILED image job is a provider error with zero usage", async () => {
@@ -56,7 +103,7 @@ Deno.test("omneky: an unrecognized status keeps polling until SUCCESS", async ()
     assertEquals(result.httpStatus, 200);
     assertEquals(result.usage, {
         credits: { default: 5 },
-        evidence: { CALL: 1 },
+        evidence: { image_1k: 1 },
     });
 });
 
@@ -119,8 +166,8 @@ Deno.test("omneky: the input schemas reject before the wire", async () => {
     );
     await rejects(
         image,
-        { brand_metadata: brand, generation_metadata: { resolution: "4K" } },
-        "4K resolution",
+        { brand_metadata: brand, generation_metadata: { resolution: "2K" } },
+        "unpriced resolution",
     );
     await rejects(
         image,
@@ -175,7 +222,7 @@ Deno.test({
         assertEquals(output.status, "SUCCESS");
         assertEquals(result.usage, {
             credits: { default: 5 },
-            evidence: { CALL: 1 },
+            evidence: { image_1k: 1 },
         });
     },
 });
